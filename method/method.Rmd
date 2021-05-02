@@ -18,14 +18,14 @@ library(janitor)
 
 ```{r}
 # Load data
-ethics <- read_csv("/Users/tahmidahmed/Desktop/gov97/Gov97/data/ethics_papers.csv") %>%
+ethics <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/ethics_papers.csv") %>%
   filter(`Type of Document` %in%  c("Government Agency", "Intergovernmental Organization/Agency")) 
 
 ethics <- as.data.frame(table(ethics$Country)) %>%
   rename("Country Name" = Var1)
   
 
-business <- read_csv("/Users/tahmidahmed/Desktop/gov97/Gov97/data/business_ranking.csv") %>%
+business <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/business_ranking.csv") %>%
   select("Country Name", "2019") %>%
   rename("ranking" = "2019")
 
@@ -38,7 +38,7 @@ business$`Country Name` <-
          "European Union" = "EU")
   
 
-GDP_rank <- read_csv("/Users/tahmidahmed/Desktop/gov97/Gov97/data/GDP_ranking.csv") %>%
+GDP_rank <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/GDP_ranking.csv") %>%
   select("Economy", "Ranking", "US dollars)") %>%
   rename("Country Name" = "Economy", "GDP_rank" = "Ranking", "GDP" = "US dollars)")
 
@@ -51,7 +51,7 @@ GDP_rank$`Country Name` <-
          "European Union" = "EU")
 
 
-GDP <- read_csv("/Users/tahmidahmed/Desktop/gov97/Gov97/data/GDP.csv") %>%
+GDP <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/GDP.csv") %>%
   select('Country Name', '2019') %>%
   rename("gdp" = "2019")
 
@@ -64,7 +64,7 @@ GDP$`Country Name` <-
          "European Union" = "EU")
 
 
-innovation <- read_csv("/Users/tahmidahmed/Desktop/gov97/Gov97/data/innovation.csv") %>%
+innovation <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/innovation.csv") %>%
   rename("innovation" = "Score", "Country Name" = "Economy") %>%
     select('Country Name', innovation)
 
@@ -95,7 +95,7 @@ lm1 <- lm(Freq ~ gdp*ranking + innovation, data = bus_ethics)
 summary(lm1)
 ```
 
-```{r}
+```{r echo=FALSE}
 # Extracting data from Harry
 libraries <- c("pdftools", "tm", "ggraph", "tidyr", "graphlayouts", "lsa", "SnowballC", "ldatuning", 
                "topicmodels", "ggplot2", "dplyr", "rjson", "quanteda", "lubridate",
@@ -107,7 +107,7 @@ lapply(libraries, require, character.only = TRUE)
 
 ```{r}
 # Load learning data
-atop <- data.table::fread("/Users/tahmidahmed/Desktop/gov97/Gov97/data/atop5_0sy.csv")
+atop <- data.table::fread("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/atop5_0sy.csv")
 
 atop <- atop %>% filter(year > 1996) 
 
