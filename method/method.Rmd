@@ -152,9 +152,23 @@ atop$`Country Name` <-
 bus_ethics <- bus_ethics %>% left_join(atop)
 ```
 
+
+```{r}
+# Add polity data
+polity <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/polity.csv")
+
+
+```
+
+
 ```{r}
 # Create learning model
 lm2 <- lm(Freq ~ alliances  + innovation, data = bus_ethics)
 summary(lm2)
 ```
-\
+
+
+
+
+
+
