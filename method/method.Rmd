@@ -155,15 +155,36 @@ bus_ethics <- bus_ethics %>% left_join(atop)
 
 ```{r}
 # Add polity data
-polity <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/polity.csv")
+polity <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/polity.csv") %>%
+  select(country, year, polity, polity2) %>%
+  rename("Country Name" = "country")
 
+polity$`Country Name` <-
+  recode(polity$`Country Name`,
+         "United States" = "USA",
+         "United Kingdom" = "UK",
+         "UAE" = "United Arab Emirates") 
 
+countries <- as.vector(bus_ethics$`Country Name`) 
+
+polity <- polity %>%
+  filter(`Country Name` %in% countries) %>%
+  filter(year == 2018)
+
+polity <- polity %>%
+  select("Country Name", polity, polity2)
+
+```
+
+```{r}
+# join polity with existing data
+bus_ethics <- bus_ethics %>% left_join(polity)
 ```
 
 
 ```{r}
 # Create learning model
-lm2 <- lm(Freq ~ alliances  + innovation, data = bus_ethics)
+lm2 <- lm(Freq ~ alliances*polity + innovation, data = bus_ethics)
 summary(lm2)
 ```
 
