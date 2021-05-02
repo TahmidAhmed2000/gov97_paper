@@ -1,0 +1,160 @@
+---
+title: "method"
+author: "Tahmid Ahmed"
+date: "5/2/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(ggplot2)
+library(janitor)
+```
+
+```{r}
+# Load data
+ethics <- read_csv("/Users/tahmidahmed/Desktop/gov97/Gov97/data/ethics_papers.csv") %>%
+  filter(`Type of Document` %in%  c("Government Agency", "Intergovernmental Organization/Agency")) 
+
+ethics <- as.data.frame(table(ethics$Country)) %>%
+  rename("Country Name" = Var1)
+  
+
+business <- read_csv("/Users/tahmidahmed/Desktop/gov97/Gov97/data/business_ranking.csv") %>%
+  select("Country Name", "2019") %>%
+  rename("ranking" = "2019")
+
+business$`Country Name` <-
+  recode(business$`Country Name`,
+         "United States" = "USA",
+         "United Kingdom" = "UK",
+         "Korea, Rep." = "Korea",
+         "The Netherlands" = "Netherlands",
+         "European Union" = "EU")
+  
+
+GDP_rank <- read_csv("/Users/tahmidahmed/Desktop/gov97/Gov97/data/GDP_ranking.csv") %>%
+  select("Economy", "Ranking", "US dollars)") %>%
+  rename("Country Name" = "Economy", "GDP_rank" = "Ranking", "GDP" = "US dollars)")
+
+GDP_rank$`Country Name` <-
+  recode(GDP_rank$`Country Name`,
+         "United States" = "USA",
+         "United Kingdom" = "UK",
+         "Korea, Rep." = "Korea",
+         "The Netherlands" = "Netherlands",
+         "European Union" = "EU")
+
+
+GDP <- read_csv("/Users/tahmidahmed/Desktop/gov97/Gov97/data/GDP.csv") %>%
+  select('Country Name', '2019') %>%
+  rename("gdp" = "2019")
+
+GDP$`Country Name` <-
+  recode(GDP$`Country Name`,
+         "United States" = "USA",
+         "United Kingdom" = "UK",
+         "Korea, Rep." = "Korea",
+         "The Netherlands" = "Netherlands",
+         "European Union" = "EU")
+
+
+innovation <- read_csv("/Users/tahmidahmed/Desktop/gov97/Gov97/data/innovation.csv") %>%
+  rename("innovation" = "Score", "Country Name" = "Economy") %>%
+    select('Country Name', innovation)
+
+innovation$`Country Name` <-
+  recode(innovation$`Country Name`,
+         "United States of America (the)" = "USA",
+         "United Kingdom (the)" = "UK",
+         "Republic of Korea (the)" = "Korea",
+         "Netherlands (the)" = "Netherlands",
+         "United Arab Emirates (the)" = "United Arab Emirates")
+  
+
+
+```
+
+```{r}
+# Join business and ethics data
+bus_ethics <- ethics %>% left_join(business) 
+bus_ethics <- bus_ethics %>% left_join(GDP_rank)
+bus_ethics <- bus_ethics %>% left_join(GDP)
+bus_ethics <- bus_ethics %>% left_join(innovation)
+
+```
+
+```{r}
+# Economics model
+lm1 <- lm(Freq ~ gdp*ranking + innovation, data = bus_ethics)
+summary(lm1)
+```
+
+```{r}
+# Extracting data from Harry
+libraries <- c("pdftools", "tm", "ggraph", "tidyr", "graphlayouts", "lsa", "SnowballC", "ldatuning", 
+               "topicmodels", "ggplot2", "dplyr", "rjson", "quanteda", "lubridate",
+               "parallel", "doParallel", "tidytext", "stringi", "Rmpfr", "data.table", "survival")
+
+lapply(libraries, require, character.only = TRUE)
+
+```
+
+```{r}
+# Load learning data
+atop <- data.table::fread("/Users/tahmidahmed/Desktop/gov97/Gov97/data/atop5_0sy.csv")
+
+atop <- atop %>% filter(year > 1996) 
+
+atop$etreaty <- ifelse(is.na(atop$atopid13), 0, 1)
+
+atop$country <- countrycode::countrycode(atop$state, origin = "cown", destination = "iso2c")
+
+
+#NUMBER: Total number of alliances the state is a member of during the year of
+#observation
+atop <- atop %>% dplyr::select(number, country, year) %>%
+  rename("Country Name" = "country", "alliances" = "number") %>%
+  filter(`Country Name` %in% c("US", "GB", "AU", "BE", "CA", "CN", "DK", "FI", "FR", "IN", "IT", "JP", "NO", "SG", "AE")) %>%
+  filter(year == 2018) 
+
+atop <- atop %>%
+  select("Country Name", "alliances")
+
+atop$`Country Name` <-
+  recode(atop$`Country Name`,
+         "US" = "USA",
+         "GB" = "UK",
+         "AU" = "Australia",
+         "BE" = "Belgium",
+         "CA" = "Canada",
+         "CN" = "China",
+         "DK" = "Denmark",
+         "FI" = "Finland",
+         "FR" = "France",
+         "IN" = "India",
+         "IT" = "Italy",
+         "JP" = "Japan",
+         "NO" = "Norway",
+         "SG" = "Singapore",
+         "AE" = "United Arab Emirates")
+
+
+```
+
+```{r}
+# join learning data with existing data
+bus_ethics <- bus_ethics %>% left_join(atop)
+```
+
+```{r}
+# Create learning model
+lm2 <- lm(Freq ~ alliances  + innovation, data = bus_ethics)
+summary(lm2)
+```
+\
