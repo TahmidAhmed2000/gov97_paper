@@ -15,6 +15,7 @@ library(tidyverse)
 library(ggplot2)
 library(janitor)
 library(wbstats)
+library(stargazer)
 ```
 
 
@@ -142,6 +143,9 @@ bus_ethics$cname <- countrycode::countrycode(bus_ethics$country, origin = "iso2c
 
 lm1 <- lm(Freq ~ gdp + ranking + innovation, data = bus_ethics)
 summary(lm1)
+
+stargazer(lm1, type="text", results = "asis")
+
 ```
 
 
@@ -152,6 +156,9 @@ summary(lm1)
 
 lm2 <- lm(Freq ~ alliances + polity + innovation, data = bus_ethics)
 summary(lm2)
+
+stargazer(lm2, type="text", results = "asis")
+
 ```
 
 
