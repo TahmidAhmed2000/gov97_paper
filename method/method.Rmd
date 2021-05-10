@@ -9,103 +9,78 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r echo=FALSE}
 # Load libraries
 library(tidyverse)
 library(ggplot2)
 library(janitor)
+library(wbstats)
 ```
 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+libraries <- c("pdftools", "tm", "ggraph", "tidyr", "graphlayouts", "lsa", "SnowballC", "ldatuning", 
+               "topicmodels", "ggplot2", "dplyr", "rjson", "quanteda", "lubridate",
+               "parallel", "doParallel", "tidytext", "stringi", "Rmpfr", "data.table", "survival")
+
+lapply(libraries, require, character.only = TRUE)
+```
+
+
 ```{r}
-# Load data
+# Middle + High Income Countries
+countries <- wbstats::wbcountries()
+countries <- countries[-which(countries$region == "Aggregates"),]
+
+countries <- countries %>% dplyr::select(country, income) %>%
+  filter(income != "Low income") %>%
+  filter(income != "Lower middle income") 
+
+
+countries$country <- countrycode::countrycode(countries$country, origin = "country.name", destination = "iso2c")
+
+# Load ethics data
 ethics <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/ethics_papers.csv") %>%
   filter(`Type of Document` %in%  c("Government Agency", "Intergovernmental Organization/Agency")) 
 
 ethics <- as.data.frame(table(ethics$Country)) %>%
   rename("Country Name" = Var1)
   
+ethics$country <- countrycode::countrycode(ethics$`Country Name`, origin = "country.name", destination = "iso2c")
 
+ethics <- ethics %>% select(country, Freq)
+
+# Load business data
 business <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/business_ranking.csv") %>%
-  select("Country Name", "2019") %>%
+  select("2019", "Country Code") %>%
   rename("ranking" = "2019")
 
-business$`Country Name` <-
-  recode(business$`Country Name`,
-         "United States" = "USA",
-         "United Kingdom" = "UK",
-         "Korea, Rep." = "Korea",
-         "The Netherlands" = "Netherlands",
-         "European Union" = "EU")
-  
+business$country <- countrycode::countrycode(business$`Country Code`, origin = "wb", destination = "iso2c")
 
-GDP_rank <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/GDP_ranking.csv") %>%
-  select("Economy", "Ranking", "US dollars)") %>%
-  rename("Country Name" = "Economy", "GDP_rank" = "Ranking", "GDP" = "US dollars)")
+business <- business %>%
+  select(country, ranking)
 
-GDP_rank$`Country Name` <-
-  recode(GDP_rank$`Country Name`,
-         "United States" = "USA",
-         "United Kingdom" = "UK",
-         "Korea, Rep." = "Korea",
-         "The Netherlands" = "Netherlands",
-         "European Union" = "EU")
-
-
+# Load GDP data
 GDP <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/GDP.csv") %>%
-  select('Country Name', '2019') %>%
+  select('2019', 'Country Code') %>%
   rename("gdp" = "2019")
 
-GDP$`Country Name` <-
-  recode(GDP$`Country Name`,
-         "United States" = "USA",
-         "United Kingdom" = "UK",
-         "Korea, Rep." = "Korea",
-         "The Netherlands" = "Netherlands",
-         "European Union" = "EU")
+GDP$country <- countrycode::countrycode(GDP$`Country Code`, origin = "wb", destination = "iso2c")
 
+GDP <- GDP %>%
+  select(country, gdp)
 
+# Load innovation data
 innovation <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/innovation.csv") %>%
   rename("innovation" = "Score", "Country Name" = "Economy") %>%
     select('Country Name', innovation)
 
-innovation$`Country Name` <-
-  recode(innovation$`Country Name`,
-         "United States of America (the)" = "USA",
-         "United Kingdom (the)" = "UK",
-         "Republic of Korea (the)" = "Korea",
-         "Netherlands (the)" = "Netherlands",
-         "United Arab Emirates (the)" = "United Arab Emirates")
-  
+innovation$country <- countrycode::countrycode(innovation$`Country Name`, origin = "country.name", destination = "iso2c")
+
+innovation <- innovation %>%
+  select(country, innovation)
 
 
-```
-
-```{r}
-# Join business and ethics data
-bus_ethics <- ethics %>% left_join(business) 
-bus_ethics <- bus_ethics %>% left_join(GDP_rank)
-bus_ethics <- bus_ethics %>% left_join(GDP)
-bus_ethics <- bus_ethics %>% left_join(innovation)
-
-```
-
-```{r}
-# Economics model
-lm1 <- lm(Freq ~ gdp*ranking + innovation, data = bus_ethics)
-summary(lm1)
-```
-
-```{r echo=FALSE}
-# Extracting data from Harry
-libraries <- c("pdftools", "tm", "ggraph", "tidyr", "graphlayouts", "lsa", "SnowballC", "ldatuning", 
-               "topicmodels", "ggplot2", "dplyr", "rjson", "quanteda", "lubridate",
-               "parallel", "doParallel", "tidytext", "stringi", "Rmpfr", "data.table", "survival")
-
-lapply(libraries, require, character.only = TRUE)
-
-```
-
-```{r}
 # Load learning data
 atop <- data.table::fread("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/atop5_0sy.csv")
 
@@ -115,81 +90,82 @@ atop$etreaty <- ifelse(is.na(atop$atopid13), 0, 1)
 
 atop$country <- countrycode::countrycode(atop$state, origin = "cown", destination = "iso2c")
 
-
-#NUMBER: Total number of alliances the state is a member of during the year of
-#observation
 atop <- atop %>% dplyr::select(number, country, year) %>%
-  rename("Country Name" = "country", "alliances" = "number") %>%
-  filter(`Country Name` %in% c("US", "GB", "AU", "BE", "CA", "CN", "DK", "FI", "FR", "IN", "IT", "JP", "NO", "SG", "AE")) %>%
-  filter(year == 2018) 
+  filter(year == 2018) %>%
+  rename("alliances" = "number")
 
 atop <- atop %>%
-  select("Country Name", "alliances")
-
-atop$`Country Name` <-
-  recode(atop$`Country Name`,
-         "US" = "USA",
-         "GB" = "UK",
-         "AU" = "Australia",
-         "BE" = "Belgium",
-         "CA" = "Canada",
-         "CN" = "China",
-         "DK" = "Denmark",
-         "FI" = "Finland",
-         "FR" = "France",
-         "IN" = "India",
-         "IT" = "Italy",
-         "JP" = "Japan",
-         "NO" = "Norway",
-         "SG" = "Singapore",
-         "AE" = "United Arab Emirates")
+  select("country", "alliances")
 
 
-```
-
-```{r}
-# join learning data with existing data
-bus_ethics <- bus_ethics %>% left_join(atop)
-```
-
-
-```{r}
-# Add polity data
+# Load polity data
 polity <- read_csv("/Users/tahmidahmed/Desktop/gov_97paper/gov97_paper/data/polity.csv") %>%
-  select(country, year, polity, polity2) %>%
-  rename("Country Name" = "country")
-
-polity$`Country Name` <-
-  recode(polity$`Country Name`,
-         "United States" = "USA",
-         "United Kingdom" = "UK",
-         "UAE" = "United Arab Emirates") 
-
-countries <- as.vector(bus_ethics$`Country Name`) 
-
-polity <- polity %>%
-  filter(`Country Name` %in% countries) %>%
+  select(country, year, polity, polity2, ccode, scode) %>%
+  rename("Country Name" = "country")  %>%
   filter(year == 2018)
 
+polity$country <- countrycode::countrycode(polity$`ccode`, origin = "p4n", destination = "iso2c")
+
 polity <- polity %>%
-  select("Country Name", polity, polity2)
+  select(country, polity, polity2)
+
+
+# Throw in zero cases, throw out low-income countries, 
+```
+
+```{r}
+# Join data
+bus_ethics <- business %>% left_join(GDP) 
+bus_ethics <- bus_ethics %>% left_join(innovation)
+bus_ethics <- bus_ethics %>% left_join(atop)
+bus_ethics <- bus_ethics %>% left_join(polity)
+bus_ethics <- bus_ethics %>% left_join(countries)
+
+
+bus_ethics <- bus_ethics %>%
+  na.omit()
+
+bus_ethics <- bus_ethics %>%
+  left_join(ethics)
+
+bus_ethics <- bus_ethics %>%
+   mutate(Freq = replace_na(Freq, 0))
+
+bus_ethics$cname <- countrycode::countrycode(bus_ethics$country, origin = "iso2c", destination = "country.name")
 
 ```
 
 ```{r}
-# join polity with existing data
-bus_ethics <- bus_ethics %>% left_join(polity)
+# Economics model
+# lm1 <- lm(Freq ~ gdp*ranking + innovation, data = bus_ethics)
+# summary(lm1)
+
+lm1 <- lm(Freq ~ gdp + ranking + innovation, data = bus_ethics)
+summary(lm1)
 ```
 
 
 ```{r}
 # Create learning model
-lm2 <- lm(Freq ~ alliances*polity + innovation, data = bus_ethics)
+#lm2 <- lm(Freq ~ alliances*polity + innovation, data = bus_ethics)
+# summary(lm2)
+
+lm2 <- lm(Freq ~ alliances + polity + innovation, data = bus_ethics)
 summary(lm2)
 ```
 
 
+throw in zeros, take out low-income, and should be about 139 countries
 
+instead of recoding the other datasets, recode ethics first
+
+Fit all the ones that are signficiant to a thid regression so might not
+
+countries <- wbstats::wbcountries()
+countries <- countries[-which(countries$region == "Aggregates"),]
+
+countries <- countries %>% dplyr::select(country, income, region)
+mutate(Freq = replace_na(Freq, 0))
 
 
 
